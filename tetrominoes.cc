@@ -22,7 +22,9 @@ bool Tetromino::getState()
 
 void Tetromino::rotateClockwise()
 {
-	currentRotation = Rotation((int(currentRotation) + 1) % 4);
+	// currentRotation = Rotation((int(currentRotation) + 1) % 4);
+	Rotation newRot = Rotation((int(currentRotation) + 1) % 4);
+	if(!checkCollideRot(newRot)) currentRotation = newRot;
 	
 	// if ((boardPos.getY() > 0) && (currentRotation == Rotation::RIGHT)) boardPos -= Vec2{0,1};
 	// if ((boardPos.getY() < board.getHeight() - dimension) && (currentRotation == Rotation::UP)) boardPos += Vec2{0,1};
@@ -30,13 +32,15 @@ void Tetromino::rotateClockwise()
 
 void Tetromino::rotateCounterClockwise()
 {
+	Rotation newRot;
 	if (currentRotation == Rotation::UP)
 	{
-		currentRotation = Rotation::LEFT;
+		newRot = Rotation::LEFT;
 		// if (boardPos.getY() > 0) boardPos -= Vec2{0,1};
 	}
 
-	else currentRotation = Rotation(int(currentRotation) - 1);
+	else newRot = Rotation(int(currentRotation) - 1);
+	if(!checkCollideRot(newRot)) currentRotation = newRot;
 
 	// if ((boardPos.getY() < (board.getHeight() - dimension)) && (currentRotation == Rotation::UP)) boardPos += Vec2{0,1};
 }
@@ -44,26 +48,15 @@ void Tetromino::rotateCounterClockwise()
 void Tetromino::shiftLeft()
 {
 	// if (!board.cellExists(Vec2<int>{boardPos.getX()-1,boardPos.getY()})) boardPos -= Vec2{1,0};
-	// boardPos -= Vec2{1,0};
-	Vec2<int> oldPos = boardPos;
-	boardPos -= Vec2{1,1};
-	if (!checkLowpoint()) boardPos += Vec2{0,1};
-	else boardPos = oldPos;
+	Vec2<int> newPos = boardPos - Vec2{1,0};
+	if(!checkCollide(newPos)) boardPos = newPos;
 }
 
 void Tetromino::shiftRight()
 {
-	// if (!board.cellExists(Vec2<int>{boardPos.getX()+1,boardPos.getY()})) boardPos += Vec2{1,0};
-	Vec2<int> oldPos = boardPos;
-	boardPos += Vec2{1,0};
-	boardPos -= Vec2{0,1};
-	if (!checkLowpoint()) boardPos += Vec2{0,1};
-	else boardPos = oldPos;
-	// else 
-	// {
-	// 	boardPos -= Vec2{1,0};
-	// 	boardPos += Vec2{0,1};
-	// }
+	// boardPos += Vec2{1,0};
+	Vec2<int> newPos = boardPos + Vec2{1,0};
+	if(!checkCollide(newPos)) boardPos = newPos;
 }
 
 void Tetromino::drop()
@@ -249,6 +242,145 @@ bool Tetromino::checkLowpoint()
 				if (cell) 
 				{				
 					if (board.cellExists(boardPos+Vec2<int>{x,y+1})) 
+					{
+						// lowY  = y  + 1;
+						// break;
+						return true;
+					}
+				}
+			}
+			// lowY  = y  + (dimension - 1);
+			// lowY  = y  + 1;
+			// lowY  = y;
+			// lowY  = y  + 1;
+        }
+
+		// if (lowY) break;
+    }
+
+	return false;
+}
+
+
+bool Tetromino::checkCollide(Vec2<int> newPos)
+{
+	int lowY = 0;
+	for (int y=0; y < dimension; y++)
+    {
+        for (int x=0; x < dimension; x++)
+        {
+            bool cell = false;
+            switch (currentRotation)
+			{
+			case Tetromino::Rotation::UP:
+				cell = shape[(y * dimension) + x];
+				break;
+			case Tetromino::Rotation::RIGHT:
+				cell = shape[dimension * (dimension - 1) - (dimension * x) + y];
+				break;
+			case Tetromino::Rotation::DOWN:
+				cell = shape[((dimension * dimension) - 1) - (dimension * y )- x];
+				break;
+			case Tetromino::Rotation::LEFT:
+				cell = shape[(dimension - 1) + (dimension * x) - y];
+				break;
+			default:
+				break;
+			}
+
+
+			if((0 > x) || (x > board.getWidth()) || (0 > y) || (y > board.getHeight())) return true;
+
+			if ((cell) && (currentRotation == Tetromino::Rotation::UP) && (dimension > 2))
+			{
+				// board.drawCell(boardPos + Vec2<int>{x,y+1}, color);
+				// board.setCell(boardPos + Vec2<int>{x,y+1}, color);
+				// lowY  = y  - (dimension);
+				Vec2<int> newBoardPos = newPos+Vec2<int>{x,y+1};
+				if((0 > newBoardPos.getX()) || (newBoardPos.getX() >= board.getWidth()) || (0 > newBoardPos.getY()) || (newBoardPos.getY() >= board.getHeight())) return true;
+				
+				if (board.cellExists(newBoardPos)) 
+				{
+					// lowY  = y  + 1;
+					// break;
+					return true;
+				}
+			}
+            else
+			{
+				// if (cell) board.drawCell(boardPos + Vec2<int>{x,y}, color);
+				// if (cell) board.setCell(boardPos + Vec2<int>{x,y}, color);
+				// if (cell) board.setCell(boardPos + Vec2<int>{x,y}, color);
+				if (cell) 
+				{				
+					Vec2<int> newBoardPos = newPos+Vec2<int>{x,y};
+					if((0 > newBoardPos.getX()) || (newBoardPos.getX() >= board.getWidth()) || (0 > newBoardPos.getY()) || (newBoardPos.getY() >= board.getHeight())) return true;
+					if (board.cellExists(newBoardPos)) 
+					{
+						// lowY  = y  + 1;
+						// break;
+						return true;
+					}
+				}
+			}
+			// lowY  = y  + (dimension - 1);
+			// lowY  = y  + 1;
+			// lowY  = y;
+			// lowY  = y  + 1;
+        }
+
+		// if (lowY) break;
+    }
+
+	return false;
+}
+
+bool Tetromino::checkCollideRot(Rotation newRot)
+{
+	int lowY = 0;
+	for (int y=0; y < dimension; y++)
+    {
+        for (int x=0; x < dimension; x++)
+        {
+            bool cell = false;
+            switch (newRot)
+			{
+			case Tetromino::Rotation::UP:
+				cell = shape[(y * dimension) + x];
+				break;
+			case Tetromino::Rotation::RIGHT:
+				cell = shape[dimension * (dimension - 1) - (dimension * x) + y];
+				break;
+			case Tetromino::Rotation::DOWN:
+				cell = shape[((dimension * dimension) - 1) - (dimension * y )- x];
+				break;
+			case Tetromino::Rotation::LEFT:
+				cell = shape[(dimension - 1) + (dimension * x) - y];
+				break;
+			default:
+				break;
+			}
+
+			if ((cell) && (currentRotation == Tetromino::Rotation::UP) && (dimension > 2))
+			{
+				// board.drawCell(boardPos + Vec2<int>{x,y+1}, color);
+				// board.setCell(boardPos + Vec2<int>{x,y+1}, color);
+				// lowY  = y  - (dimension);
+				if (board.cellExists(boardPos+Vec2<int>{x,y+1})) 
+				{
+					// lowY  = y  + 1;
+					// break;
+					return true;
+				}
+			}
+            else
+			{
+				// if (cell) board.drawCell(boardPos + Vec2<int>{x,y}, color);
+				// if (cell) board.setCell(boardPos + Vec2<int>{x,y}, color);
+				// if (cell) board.setCell(boardPos + Vec2<int>{x,y}, color);
+				if (cell) 
+				{				
+					if (board.cellExists(boardPos+Vec2<int>{x,y})) 
 					{
 						// lowY  = y  + 1;
 						// break;

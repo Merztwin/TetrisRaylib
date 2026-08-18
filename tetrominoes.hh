@@ -32,6 +32,9 @@ class Tetromino
 
         void setState(bool b);
         bool checkLowpoint();
+        bool checkCollide(Vec2<int> newPos);
+        bool checkCollideRot(Rotation newRot);
+
 
 
 
